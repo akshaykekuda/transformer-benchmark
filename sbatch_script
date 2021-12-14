@@ -1,0 +1,41 @@
+#!/bin/bash
+#SBATCH --account=PAS2056
+#SBATCH --job-name=bert-custom
+#SBATCH --nodes=1 --ntasks-per-node=28 --gpus-per-node 1
+#SBATCH --time=2:00:00
+#SBATCH --output="log_bert-base-cased_custom_mcq"
+
+source ../hvd/bin/activate
+BS=8
+MODEL='bert-base-uncased'
+TASK='mcq'
+EPOCHS=3
+
+# Task Specific Arguments
+num_labels=4
+vocab_size=30522
+max_seq_len=512
+num_examples=5000
+dec_max_seq_len=512
+
+# Model Specific Arguments
+num_attention_heads=8
+num_hidden_layers=6
+hidden_size=512
+ffn_dim=512
+
+# Decoder Specific Arguments
+dec_num_attention_heads=8
+dec_num_hidden_layers=6
+dec_ffn_dim=2048
+
+echo "Batch size="$BS
+echo "Model="$MODEL
+echo "Task="$TASK
+
+python transformer_benchmark.py --batch_size $BS --model $MODEL --task $TASK \
+ --vocab_size $vocab_size --max_seq_len $max_seq_len --num_examples $num_examples \
+--num_labels $num_labels --ffn_dim $ffn_dim --epochs $EPOCHS \
+--num_attention_heads $num_attention_heads --num_hidden_layers $num_hidden_layers --hidden_size $hidden_size \
+--dec_max_seq_len $dec_max_seq_len --dec_num_attention_heads $dec_num_attention_heads --dec_num_hidden_layers $dec_num_hidden_layers \
+--dec_ffn_dim $dec_ffn_dim 
