@@ -54,8 +54,6 @@ class EncoderSequenceClassification(Encoder):
         out = self.model(en_embed_out)
         out = self.fcn(out)
         out = out.sum(dim=0)
-        print(out.shape)
-        print(labels.shape)
         loss = self.loss(out.view(-1, out.size()[-1]), labels.view(-1))
         ModelOutput.loss = loss
         ModelOutput.out = out

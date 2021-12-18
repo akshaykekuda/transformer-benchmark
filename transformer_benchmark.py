@@ -13,15 +13,15 @@ from CustomModels import *
 import copy
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--batch_size", default=8, type=int)
+parser.add_argument("--batch_size", default=4, type=int)
 parser.add_argument("--task", default='classification', type=str)
 parser.add_argument("--model", default='bert-base-uncased',type=str)
-parser.add_argument("--use_default", default=False, action="store_true")
+parser.add_argument("--use_custom_config", default=False, action="store_true")
 parser.add_argument("--epochs", default=3, type=int)
 
 parser.add_argument("--hidden_size", default=512, type=int, required=False)
 parser.add_argument("--num_hidden_layers", default=6, type=int, required=False)
-parser.add_argument("--num_attention_heads", default=6, type=int, required=False)
+parser.add_argument("--num_attention_heads", default=8, type=int, required=False)
 
 parser.add_argument("--vocab_size", default=30522, type=int)
 parser.add_argument("--max_seq_len", default=512, type=int)
@@ -32,15 +32,17 @@ parser.add_argument("--dec_num_hidden_layers", default=6, type=int)
 parser.add_argument("--dec_ffn_dim", default=2048, type=int)
 parser.add_argument("--dec_max_seq_len", default=512, type=int)
 
-parser.add_argument("--num_labels", default=2, type=int, required=True)
-parser.add_argument("--num_examples", default=1000, type=int)
+parser.add_argument("--num_labels", default=2, type=int)
+parser.add_argument("--num_examples", default=5000, type=int)
 
 args = parser.parse_args()
 
 print(args)
 
 if args.model!='custom':
-  if args.use_default:
+  if args.task=='summarization':
+    args.num_labels = args.vocab_size
+  if ~args.use_custom_config:
     print("Using default configuration for {}".format(args.model))
     config = AutoConfig.from_pretrained(args.model, vocab_size=args.vocab_size)
     if args.task in ['translation', 'summarization']:
@@ -98,13 +100,11 @@ elif args.task == "mcq":
     raise ValueError("Cannot initialize a {} model for {} task".format(args.model, args.task))
   train_dataset = SyntheticMCQDataset(args.vocab_size, args.num_examples, args.num_labels, args.max_seq_len)
 
-elif args.task in ['translation', 'summarization']:
-  print("Doing Transalation")
+elif args.task == 'translation':
   if 't5' in args.model:
     model = AutoModelForSeq2SeqLM.from_config(config)
     config.vocab_size = max(args.vocab_size, args.num_labels)
   elif args.model == 'custom':
-    print("setting up custom model")
     model = EncoderDecoder(args.vocab_size, args.hidden_size, args.num_attention_heads, args.num_hidden_layers, args.dec_num_attention_heads, args.dec_num_hidden_layers, args.ffn_dim, args.num_labels)
   else:
     try:
@@ -112,10 +112,21 @@ elif args.task in ['translation', 'summarization']:
       model = EncoderDecoderModel(config=config)
     except:
        raise ValueError("Cannot initialize a {} model for {} task".format(args.model, args.task))
-  if args.task == "translation":
-    train_dataset = SyntheticDataset(args.vocab_size, args.num_examples, args.num_labels, args.max_seq_len, args.dec_max_seq_len)
-  elif args.task == 'summarization':
-    train_dataset = SyntheticDataset(args.vocab_size, args.num_examples, args.vocab_size, args.max_seq_len, args.dec_max_seq_len)
+  train_dataset = SyntheticDataset(args.vocab_size, args.num_examples, args.num_labels, args.max_seq_len, args.dec_max_seq_len)
+
+elif args.task =='summarization':
+  if 't5' in args.model:
+    model = AutoModelForSeq2SeqLM.from_config(config)
+    config.vocab_size = max(args.vocab_size, args.num_labels)
+  elif args.model == 'custom':
+    model = EncoderDecoder(args.vocab_size, args.hidden_size, args.num_attention_heads, args.num_hidden_layers, args.dec_num_attention_heads, args.dec_num_hidden_layers, args.ffn_dim, args.vocab_size) 
+  else:
+    try:
+      config = EncoderDecoderConfig.from_encoder_decoder_configs(config_encoder, config_decoder)
+      model = EncoderDecoderModel(config=config)
+    except:
+       raise ValueError("Cannot initialize a {} model for {} task".format(args.model, args.task))
+  train_dataset = SyntheticDataset(args.vocab_size, args.num_examples, args.vocab_size, args.max_seq_len, args.dec_max_seq_len)
 
 else:
   raise ValueError("Task {} not implemented".format(args.task))
