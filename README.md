@@ -4,7 +4,9 @@
 Benchmarks for evaluating the training/inference time of Transformer models have not yet been fully developed. The goal of the project is to design a benchmark suite to evaluate the training/inference time of various task specific Transformer models. 
 
 Tasks Supported: Sequence Classification, Token Classification (NER), Translation, Summarization
+
 Models: All variants of bert-like models, XLNet, T5, Build your own transformer
+
 Distributed Training Framework: Pytorch Horovod
 
 ## Features
